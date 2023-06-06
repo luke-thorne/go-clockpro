@@ -40,14 +40,14 @@ func (p pageType) String() string {
 	return "unknown"
 }
 
-type entry[T comparable, T2 comparable] struct {
+type entry[T comparable, T2 any] struct {
 	ptype pageType
 	key   T
 	val   *T2
 	ref   bool
 }
 
-type Cache[T comparable, T2 comparable] struct {
+type Cache[T comparable, T2 any] struct {
 	mem_max  int
 	mem_cold int
 	keys     map[T]*ring.Ring
@@ -61,7 +61,7 @@ type Cache[T comparable, T2 comparable] struct {
 	count_test int
 }
 
-func New[T comparable, T2 comparable](size int) *Cache[T, T2] {
+func New[T comparable, T2 any](size int) *Cache[T, T2] {
 	return &Cache[T, T2]{
 		mem_max:  size,
 		mem_cold: size,
@@ -240,7 +240,7 @@ func (c *Cache[T, T2]) run_hand_test() {
 	c.hand_test = c.hand_test.Next()
 }
 
-func (c *Cache[T, T2]) dump() string {
+func (c *Cache[T, T2]) Dump() string {
 
 	var b []byte
 
