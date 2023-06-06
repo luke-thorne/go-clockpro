@@ -1,3 +1,3 @@
-go-clockpro: the CLOCK-Pro cache eviction algorithm
+fork of [go-clockpro](http://godoc.org/github.com/dgryski/go-clockpro)
 
-godoc: http://godoc.org/github.com/dgryski/go-clockpro
+go-clockpro: the CLOCK-Pro cache eviction algorithm

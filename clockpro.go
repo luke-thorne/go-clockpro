@@ -40,17 +40,17 @@ func (p pageType) String() string {
 	return "unknown"
 }
 
-type entry struct {
+type entry[T comparable, T2 comparable] struct {
 	ptype pageType
-	key   string
-	val   interface{}
+	key   T
+	val   *T2
 	ref   bool
 }
 
-type Cache struct {
+type Cache[T comparable, T2 comparable] struct {
 	mem_max  int
 	mem_cold int
-	keys     map[string]*ring.Ring
+	keys     map[T]*ring.Ring
 
 	hand_hot  *ring.Ring
 	hand_cold *ring.Ring
@@ -61,15 +61,15 @@ type Cache struct {
 	count_test int
 }
 
-func New(size int) *Cache {
-	return &Cache{
+func New[T comparable, T2 comparable](size int) *Cache[T, T2] {
+	return &Cache[T, T2]{
 		mem_max:  size,
 		mem_cold: size,
-		keys:     make(map[string]*ring.Ring),
+		keys:     make(map[T]*ring.Ring),
 	}
 }
 
-func (c *Cache) Get(key string) interface{} {
+func (c *Cache[T, T2]) Get(key T) *T2 {
 
 	r := c.keys[key]
 
@@ -77,7 +77,7 @@ func (c *Cache) Get(key string) interface{} {
 		return nil
 	}
 
-	mentry := r.Value.(*entry)
+	mentry := r.Value.(*entry[T, T2])
 
 	if mentry.val == nil {
 		return nil
@@ -87,23 +87,23 @@ func (c *Cache) Get(key string) interface{} {
 	return mentry.val
 }
 
-func (c *Cache) Set(key string, value interface{}) {
+func (c *Cache[T, T2]) Set(key T, value T2) {
 
 	r := c.keys[key]
 
 	if r == nil {
 		// no cache entry?  add it
-		r = &ring.Ring{Value: &entry{ref: false, val: value, ptype: ptCold, key: key}}
+		r = &ring.Ring{Value: &entry[T, T2]{ref: false, val: &value, ptype: ptCold, key: key}}
 		c.meta_add(key, r)
 		c.count_cold++
 		return
 	}
 
-	mentry := r.Value.(*entry)
+	mentry := r.Value.(*entry[T, T2])
 
 	if mentry.val != nil {
 		// cache entry was a hot or cold page
-		mentry.val = value
+		mentry.val = &value
 		mentry.ref = true
 		return
 	}
@@ -113,7 +113,7 @@ func (c *Cache) Set(key string, value interface{}) {
 		c.mem_cold++
 	}
 	mentry.ref = false
-	mentry.val = value
+	mentry.val = &value
 	mentry.ptype = ptHot
 	c.count_test--
 	c.meta_del(r)
@@ -121,7 +121,7 @@ func (c *Cache) Set(key string, value interface{}) {
 	c.count_hot++
 }
 
-func (c *Cache) meta_add(key string, r *ring.Ring) {
+func (c *Cache[T, T2]) meta_add(key T, r *ring.Ring) {
 
 	c.evict()
 
@@ -140,9 +140,9 @@ func (c *Cache) meta_add(key string, r *ring.Ring) {
 	}
 }
 
-func (c *Cache) meta_del(r *ring.Ring) {
+func (c *Cache[T, T2]) meta_del(r *ring.Ring) {
 
-	delete(c.keys, r.Value.(*entry).key)
+	delete(c.keys, r.Value.(*entry[T, T2]).key)
 
 	if r == c.hand_hot {
 		c.hand_hot = c.hand_hot.Prev()
@@ -159,16 +159,16 @@ func (c *Cache) meta_del(r *ring.Ring) {
 	r.Prev().Unlink(1)
 }
 
-func (c *Cache) evict() {
+func (c *Cache[T, T2]) evict() {
 
 	for c.mem_max <= c.count_hot+c.count_cold {
 		c.run_hand_cold()
 	}
 }
 
-func (c *Cache) run_hand_cold() {
+func (c *Cache[T, T2]) run_hand_cold() {
 
-	mentry := c.hand_cold.Value.(*entry)
+	mentry := c.hand_cold.Value.(*entry[T, T2])
 
 	if mentry.ptype == ptCold {
 
@@ -195,13 +195,13 @@ func (c *Cache) run_hand_cold() {
 	}
 }
 
-func (c *Cache) run_hand_hot() {
+func (c *Cache[T, T2]) run_hand_hot() {
 
 	if c.hand_hot == c.hand_test {
 		c.run_hand_test()
 	}
 
-	mentry := c.hand_hot.Value.(*entry)
+	mentry := c.hand_hot.Value.(*entry[T, T2])
 
 	if mentry.ptype == ptHot {
 
@@ -217,13 +217,13 @@ func (c *Cache) run_hand_hot() {
 	c.hand_hot = c.hand_hot.Next()
 }
 
-func (c *Cache) run_hand_test() {
+func (c *Cache[T, T2]) run_hand_test() {
 
 	if c.hand_test == c.hand_cold {
 		c.run_hand_cold()
 	}
 
-	mentry := c.hand_test.Value.(*entry)
+	mentry := c.hand_test.Value.(*entry[T, T2])
 
 	if mentry.ptype == ptTest {
 
@@ -240,14 +240,14 @@ func (c *Cache) run_hand_test() {
 	c.hand_test = c.hand_test.Next()
 }
 
-func (c *Cache) dump() string {
+func (c *Cache[T, T2]) dump() string {
 
 	var b []byte
 
 	var end *ring.Ring = nil
 	for elt := c.hand_hot; elt != end; elt = elt.Next() {
 		end = c.hand_hot
-		m := elt.Value.(*entry)
+		m := elt.Value.(*entry[T, T2])
 
 		if c.hand_hot == elt {
 			b = append(b, '2')

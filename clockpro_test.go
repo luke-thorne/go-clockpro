@@ -18,7 +18,7 @@ func TestCache(t *testing.T) {
 
 	scanner := bufio.NewScanner(f)
 
-	cache := New(200)
+	cache := New[string, string](200)
 
 	for scanner.Scan() {
 		fields := bytes.Fields(scanner.Bytes())
@@ -32,12 +32,12 @@ func TestCache(t *testing.T) {
 			cache.Set(key, key)
 		} else {
 			hit = true
-			if v.(string) != key {
+			if *v != key {
 				t.Errorf("cache returned bad data: got %+v , want %+v\n", v, key)
 			}
 		}
 		if hit != wantHit {
-			t.Errorf("cache hit mismatch: got %v, want %v\n", hit, wantHit)
+			t.Errorf("cache hit mismatch on %s: got %v, want %v\n", key, hit, wantHit)
 		}
 	}
 }
