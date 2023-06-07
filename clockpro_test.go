@@ -18,7 +18,7 @@ func TestCache(t *testing.T) {
 
 	scanner := bufio.NewScanner(f)
 
-	cache := New[string, string](200)
+	cache := New[string, []byte](200)
 
 	for scanner.Scan() {
 		fields := bytes.Fields(scanner.Bytes())
@@ -28,11 +28,11 @@ func TestCache(t *testing.T) {
 
 		var hit bool
 		v := cache.Get(key)
-		if v == nil {
-			cache.Set(key, key)
+		if len(v) == 0 {
+			cache.Set(key, []byte(key))
 		} else {
 			hit = true
-			if *v != key {
+			if !bytes.Equal(v, []byte(key)) {
 				t.Errorf("cache returned bad data: got %+v , want %+v\n", v, key)
 			}
 		}

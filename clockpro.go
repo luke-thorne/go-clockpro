@@ -69,22 +69,22 @@ func New[T comparable, T2 any](size int) *Cache[T, T2] {
 	}
 }
 
-func (c *Cache[T, T2]) Get(key T) *T2 {
+func (c *Cache[T, T2]) Get(key T) T2 {
 
 	r := c.keys[key]
 
 	if r == nil {
-		return nil
+		return *new(T2)
 	}
 
 	mentry := r.Value.(*entry[T, T2])
 
 	if mentry.val == nil {
-		return nil
+		return *new(T2)
 	}
 
 	mentry.ref = true
-	return mentry.val
+	return *mentry.val
 }
 
 func (c *Cache[T, T2]) Set(key T, value T2) {
